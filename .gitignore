@@ -1,0 +1,6 @@
+node_modules/
+main.js.map
+src/assets/assetData.ts
+*.log
+.DS_Store
+manual-install/

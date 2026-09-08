@@ -1,0 +1,10 @@
+{
+  "id": "pixel-agents",
+  "name": "Pixel Agents",
+  "version": "1.0.0",
+  "minAppVersion": "1.5.0",
+  "description": "Watches your Claude Code and Codex sessions and shows them as animated pixel art characters in a virtual office — works alongside Claudian.",
+  "author": "Dennis Kolvenbach (port), Pablo De Lucca and Daniel Munoz (original work)",
+  "authorUrl": "https://github.com/DK-SIVA/obsidian-pixel-agents",
+  "isDesktopOnly": true
+}

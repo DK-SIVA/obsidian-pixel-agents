@@ -1,0 +1,28 @@
+{
+  "name": "obsidian-pixel-agents",
+  "version": "1.0.0",
+  "description": "Obsidian plugin port of Pixel Agents \u2014 Claude Code and Codex sessions as pixel art characters in a virtual office.",
+  "private": true,
+  "scripts": {
+    "assets": "node scripts/gen-assets.mjs",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run assets && npm run typecheck && node esbuild.config.mjs production",
+    "dev": "npm run assets && node esbuild.config.mjs",
+    "test": "node --test tests/smoke.test.mjs"
+  },
+  "dependencies": {
+    "pngjs": "^7.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pngjs": "^6.0.5",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.0.0",
+    "obsidian": "latest",
+    "typescript": "^5.9.0"
+  }
+}
