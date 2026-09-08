@@ -1,7 +1,7 @@
 {
   "name": "obsidian-pixel-agents",
-  "version": "1.0.0",
-  "description": "Obsidian plugin port of Pixel Agents \u2014 Claude Code and Codex sessions as pixel art characters in a virtual office.",
+  "version": "1.0.1",
+  "description": "Obsidian plugin port of Pixel Agents — Claude Code and Codex sessions as pixel art characters in a virtual office.",
   "private": true,
   "scripts": {
     "assets": "node scripts/gen-assets.mjs",

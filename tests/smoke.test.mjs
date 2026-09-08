@@ -221,7 +221,7 @@ before(async () => {
   for (const channel of [
     'characterSpritesLoaded', 'floorTilesLoaded', 'wallTilesLoaded', 'furnitureAssetsLoaded',
     'settingsLoaded', 'layoutLoaded', 'agentCreated', 'agentClosed', 'agentToolStart',
-    'agentToolDone', 'agentStatus',
+    'agentToolDone', 'agentStatus', 'subagentClear', 'agentToolPermission',
   ]) {
     plugin.bus.onView(channel, (data) => record(channel, data));
   }
@@ -317,4 +317,54 @@ test('appended tool calls become agent events', async () => {
   await sleep(2500);
 
   assert.ok(firstEvent('agentToolDone'), 'agentToolDone was sent once the tool finished');
+});
+
+test('parallel sub-agents each get a character', async () => {
+  // Current Claude Code names the sub-agent tool "Agent", not "Task". Both have
+  // to produce the "Subtask:" status, because that prefix is what makes the UI
+  // spawn a sub-agent character.
+  for (const [id, description] of [
+    ['toolu_agent_a', 'research switches'],
+    ['toolu_agent_b', 'check datasheets'],
+  ]) {
+    appendFileSync(
+      sessionFile,
+      JSON.stringify({
+        type: 'assistant',
+        message: {
+          content: [{ type: 'tool_use', id, name: 'Agent', input: { description, subagent_type: 'general-purpose' } }],
+        },
+      }) + '\n',
+    );
+  }
+  await sleep(2500);
+
+  const subtasks = (seen.get('agentToolStart') ?? []).filter(
+    (event) => String(event.status ?? '').startsWith('Subtask:'),
+  );
+  assert.equal(subtasks.length, 2, 'both Agent calls announce themselves as subtasks');
+  assert.deepEqual(
+    subtasks.map((event) => event.status).sort(),
+    ['Subtask: check datasheets', 'Subtask: research switches'],
+    'each character is labelled with its own description',
+  );
+
+  // A sub-agent run takes minutes; it must not raise a permission bubble.
+  assert.equal(
+    seen.get('agentToolPermission'), undefined,
+    'a running Agent call is not mistaken for waiting on the user',
+  );
+
+  appendFileSync(
+    sessionFile,
+    JSON.stringify({
+      type: 'user',
+      message: { content: [{ type: 'tool_result', tool_use_id: 'toolu_agent_a' }] },
+    }) + '\n',
+  );
+  await sleep(2500);
+
+  const cleared = seen.get('subagentClear') ?? [];
+  assert.equal(cleared.length, 1, 'the finished sub-agent character is removed');
+  assert.equal(cleared[0].parentToolId, 'toolu_agent_a', 'and only that one');
 });

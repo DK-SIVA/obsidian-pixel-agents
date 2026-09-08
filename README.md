@@ -49,6 +49,10 @@ The bottom toolbar toggles **edit mode**, where the office becomes a furniture e
 items, paint floors and walls, recolour pieces, and undo with `Ctrl+Z`. Keyboard shortcuts only
 fire while the office pane has focus, so typing an `r` into a note will not rotate your desk.
 
+When a session spawns sub-agents — Claude Code's `Agent` tool, older builds' `Task` — each
+running one walks in as its own character with the call's description as its label, and leaves
+again when it finishes. Six agents working in parallel means six extra characters.
+
 The **Settings** button next to it opens the office's own panel: sound on/off, a debug view
 listing every tracked session (the quickest way to see whether a transcript is being picked up at
 all), layout import/export, and a shortcut that opens `~/.claude/projects` in your file manager.
@@ -104,6 +108,7 @@ the upstream code, unchanged. What had to be replaced is the shell around it:
 | Extra watch folders from `extra-dirs.txt` | The settings field above |
 | System tray, auto-updater, window bounds | Dropped — Obsidian and BRAT own those |
 | Global `keydown` listener | Bound to the office pane, so shortcuts stay local |
+| Sub-agents only via `Task` and `progress` records | Also `Agent`, derived from the parent's tool calls |
 | Game loop always running | Skips frames while the pane is off screen |
 
 `src/ui/electronApi.ts` keeps the module path and the exact shape of the old preload bridge, so
@@ -120,6 +125,11 @@ the ~8,000 lines of UI code did not need to be touched to talk to the new bus.
   wrong in both directions.
 - Clicking a character does nothing. In VS Code it focused that agent's terminal; there is no
   terminal to focus here.
+- A sub-agent's character shows that it is running, not what it is doing. Upstream read that
+  from transcript records of type `progress` carrying `parentToolUseID`; current Claude Code no
+  longer writes them, so the individual steps inside a sub-agent are simply not on disk. The
+  characters themselves are derived from the parent session's `Agent` / `Task` calls instead,
+  which is why they work at all.
 
 ## Development
 

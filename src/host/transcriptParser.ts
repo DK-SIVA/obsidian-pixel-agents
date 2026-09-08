@@ -14,7 +14,19 @@ import {
   TASK_DESCRIPTION_DISPLAY_MAX_LENGTH,
 } from './constants.js';
 
-export const PERMISSION_EXEMPT_TOOLS = new Set(['Task', 'AskUserQuestion']);
+/**
+ * Tools that spawn a sub-agent. Upstream only knew `Task`; current Claude Code
+ * calls the same thing `Agent`, which is why parallel sub-agents stopped
+ * showing up as their own characters.
+ */
+export const SUBAGENT_TOOLS = new Set(['Task', 'Agent']);
+
+/**
+ * Tools that are not waiting on the user when they sit there for a while.
+ * A sub-agent call runs for minutes by design, so without `Agent` in here the
+ * parent character raises a false "wants permission" bubble after 7 seconds.
+ */
+export const PERMISSION_EXEMPT_TOOLS = new Set(['Task', 'Agent', 'AskUserQuestion']);
 
 export function formatToolStatus(toolName: string, input: Record<string, unknown>): string {
   const base = (p: unknown) => typeof p === 'string' ? path.basename(p) : '';
@@ -30,8 +42,13 @@ export function formatToolStatus(toolName: string, input: Record<string, unknown
     case 'Grep': return 'Searching code';
     case 'WebFetch': return 'Fetching web content';
     case 'WebSearch': return 'Searching the web';
-    case 'Task': {
-      const desc = typeof input.description === 'string' ? input.description : '';
+    case 'Task':
+    case 'Agent': {
+      // The "Subtask:" prefix is what makes the UI spawn a sub-agent
+      // character, so both tool names have to produce it.
+      const desc = typeof input.description === 'string'
+        ? input.description
+        : typeof input.subagent_type === 'string' ? input.subagent_type : '';
       return desc ? `Subtask: ${desc.length > TASK_DESCRIPTION_DISPLAY_MAX_LENGTH ? desc.slice(0, TASK_DESCRIPTION_DISPLAY_MAX_LENGTH) + '\u2026' : desc}` : 'Running subtask';
     }
     case 'AskUserQuestion': return 'Waiting for your answer';
@@ -132,7 +149,7 @@ export function processTranscriptLine(
             if (block.type === 'tool_result' && block.tool_use_id) {
               console.log(`[Pixel Agents] Agent ${agentId} tool done: ${block.tool_use_id}`);
               const completedToolId = block.tool_use_id;
-              if (agent.activeToolNames.get(completedToolId) === 'Task') {
+              if (SUBAGENT_TOOLS.has(agent.activeToolNames.get(completedToolId) ?? '')) {
                 agent.activeSubagentToolIds.delete(completedToolId);
                 agent.activeSubagentToolNames.delete(completedToolId);
                 bridge?.send('subagentClear', {
@@ -349,7 +366,7 @@ function processProgressRecord(
     return;
   }
 
-  if (agent.activeToolNames.get(parentToolId) !== 'Task') return;
+  if (!SUBAGENT_TOOLS.has(agent.activeToolNames.get(parentToolId) ?? '')) return;
 
   const msg = data.message as Record<string, unknown> | undefined;
   if (!msg) return;
